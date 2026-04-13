@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Admin Dashboard — VoiceAI</title>
+  <link rel="stylesheet" href="/static/base.css"/>
+  <style>
+    body {
+      background: var(--ink);
+      display: flex; flex-direction: column; min-height: 100vh;
+    }
+
+    /* ── PAGE BG ── */
+    .page-bg {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 60% 40% at 5% 0%, rgba(20,184,166,0.06) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 35% at 95% 100%, rgba(139,92,246,0.05) 0%, transparent 55%);
+    }
+
+    /* ── PAGE ── */
+    .admin-page {
+      flex: 1; padding: 40px 36px 72px;
+      max-width: 1300px; margin: 0 auto; width: 100%;
+      position: relative; z-index: 1;
+    }
+
+    .page-title-row {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      margin-bottom: 32px; gap: 16px; flex-wrap: wrap;
+      animation: fadeUp .5s ease both;
+    }
+    .page-title-group { display: flex; flex-direction: column; gap: 5px; }
+    .page-eyebrow {
+      font-size: 11px; font-weight: 700; letter-spacing: 1.8px;
+      text-transform: uppercase; color: var(--teal);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .page-eyebrow::before {
+      content: '';
+      display: block; width: 16px; height: 1.5px;
+      background: var(--teal); border-radius: 2px;
+    }
+    .page-title { font-size: 30px; color: var(--t1); }
+
+    /* ── STAT CARDS ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px; margin-bottom: 28px;
+      animation: fadeUp .5s .07s ease both;
+    }
+    .stat-card {
+      background: var(--ink3);
+      border: 1px solid var(--line2);
+      border-radius: var(--r-xl);
+      padding: 24px 28px;
+      position: relative; overflow: hidden;
+      transition: transform .25s, border-color .25s, box-shadow .25s;
+      cursor: default;
+    }
+    .stat-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(20,184,166,0.25);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4), 0 0 0 1px rgba(20,184,166,0.1);
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--teal), var(--violet), transparent);
+      opacity: 0.7;
+    }
+    .stat-card-icon {
+      position: absolute; top: 20px; right: 20px;
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--teal-dim); border: 1px solid rgba(20,184,166,0.2);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .stat-card-icon svg { width: 16px; height: 16px; stroke: var(--teal); fill: none; }
+    .stat-card:nth-child(2) .stat-card-icon { background: var(--violet-dim); border-color: rgba(139,92,246,0.2); }
+    .stat-card:nth-child(2) .stat-card-icon svg { stroke: var(--violet-light); }
+    .stat-card:nth-child(3) .stat-card-icon { background: var(--coral-dim); border-color: rgba(249,115,22,0.2); }
+    .stat-card:nth-child(3) .stat-card-icon svg { stroke: var(--coral); }
+    .stat-label {
+      font-size: 11px; font-weight: 700; letter-spacing: .8px;
+      text-transform: uppercase; color: var(--t3); margin-bottom: 10px;
+    }
+    .stat-value {
+      font-family: 'Playfair Display', serif;
+      font-size: 42px; color: var(--t1); line-height: 1;
+      transition: color .3s;
+    }
+    .stat-sub { font-size: 12px; color: var(--t3); margin-top: 6px; }
+
+    /* ── COUNT UP ANIMATION ── */
+    .stat-value.counting { color: var(--teal); }
+
+    /* ── SEARCH & FILTER BAR ── */
+    .table-toolbar {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 18px; flex-wrap: wrap;
+      animation: fadeUp .5s .14s ease both;
+    }
+    .search-wrap {
+      position: relative; flex: 1; min-width: 200px;
+    }
+    .search-icon {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--t4); pointer-events: none;
+    }
+    .search-icon svg { width: 15px; height: 15px; }
+    .search-input {
+      width: 100%;
+      background: var(--ink3); border: 1px solid var(--line2);
+      border-radius: var(--r-md); color: var(--t1);
+      font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px;
+      padding: 10px 14px 10px 38px;
+      outline: none; transition: border-color .2s, box-shadow .2s;
+    }
+    .search-input::placeholder { color: var(--t4); }
+    .search-input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-dim); }
+
+    .filter-select {
+      background: var(--ink3); border: 1px solid var(--line2);
+      border-radius: var(--r-md); color: var(--t1);
+      font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px;
+      padding: 10px 14px; outline: none; cursor: pointer;
+      transition: border-color .2s;
+      appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(238,242,247,0.25)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center;
+      padding-right: 32px;
+    }
+    .filter-select:focus { border-color: var(--teal); }
+    .filter-select option { background: var(--ink3); }
+
+    /* ── TABLE ── */
+    .table-card {
+      background: var(--ink3);
+      border: 1px solid var(--line2);
+      border-radius: var(--r-xl);
+      overflow: hidden;
+      animation: fadeUp .5s .21s ease both;
+      transition: border-color .3s;
+    }
+    .table-card:hover { border-color: rgba(20,184,166,0.15); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead { background: var(--ink4); }
+    th {
+      padding: 14px 20px;
+      font-size: 11px; font-weight: 700; letter-spacing: .8px;
+      text-transform: uppercase; color: var(--t3);
+      text-align: left; white-space: nowrap;
+      border-bottom: 1px solid var(--line);
+    }
+    td {
+      padding: 15px 20px;
+      font-size: 13px; color: var(--t2);
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr { transition: background .15s; }
+    tr:hover td { background: rgba(20,184,166,0.03); }
+
+    /* Row entry animation */
+    tbody tr {
+      animation: fadeUp .35s ease both;
+    }
+
+    .user-cell { display: flex; align-items: center; gap: 12px; }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; flex-shrink: 0;
+      transition: transform .2s;
+    }
+    tr:hover .avatar { transform: scale(1.08); }
+    .avatar-gold { background: var(--teal-dim); color: var(--teal); border: 1px solid rgba(20,184,166,0.25); }
+    .avatar-blue { background: var(--violet-dim); color: var(--violet-light); border: 1px solid rgba(139,92,246,0.25); }
+    .user-name { font-size: 14px; font-weight: 600; color: var(--t1); }
+    .user-email { font-size: 12px; color: var(--t3); }
+
+    .del-btn {
+      background: transparent; border: 1px solid var(--line2);
+      border-radius: var(--r-sm); color: var(--t3);
+      font-size: 12px; font-weight: 500;
+      padding: 5px 12px; cursor: pointer;
+      transition: all .2s;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .del-btn:hover { background: var(--red-dim); border-color: rgba(244,63,94,0.35); color: var(--red); }
+
+    .table-footer {
+      padding: 13px 20px;
+      font-size: 12px; color: var(--t4);
+      border-top: 1px solid var(--line);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    /* ── EMPTY ── */
+    .empty-state { padding: 60px 20px; text-align: center; }
+    .empty-icon {
+      width: 48px; height: 48px;
+      background: var(--ink4); border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .empty-icon svg { width: 22px; height: 22px; fill: var(--t4); }
+    .empty-title { font-size: 16px; font-weight: 500; color: var(--t2); margin-bottom: 6px; }
+    .empty-sub { font-size: 13px; color: var(--t4); }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 999;
+      background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity .25s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--ink3); border: 1px solid var(--line2);
+      border-radius: var(--r-xl);
+      padding: 32px; max-width: 400px; width: 90%;
+      transform: translateY(16px) scale(0.97);
+      transition: transform .3s cubic-bezier(.22,1,.36,1);
+      box-shadow: var(--shadow-card);
+    }
+    .modal-overlay.open .modal { transform: translateY(0) scale(1); }
+    .modal-title { font-size: 20px; color: var(--t1); margin-bottom: 8px; }
+    .modal-body  { font-size: 14px; color: var(--t2); line-height: 1.6; margin-bottom: 26px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .btn-danger {
+      background: var(--red); border: none; border-radius: var(--r-md);
+      color: white; font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 14px; font-weight: 600;
+      padding: 10px 22px; cursor: pointer;
+      transition: opacity .2s, transform .15s, box-shadow .2s;
+      box-shadow: 0 4px 16px rgba(244,63,94,0.35);
+    }
+    .btn-danger:hover  { opacity: .9; box-shadow: 0 6px 24px rgba(244,63,94,0.45); }
+    .btn-danger:active { transform: scale(0.97); }
+
+    /* ── ADMIN BADGE in topbar ── */
+    .topbar-badge {
+      font-size: 11px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; padding: 4px 10px;
+      background: var(--teal-dim); border: 1px solid rgba(20,184,166,0.3);
+      border-radius: var(--r-full); color: var(--teal);
+    }
+
+    @media (max-width: 768px) {
+      .admin-page { padding: 24px 16px 48px; }
+      .stats-grid { grid-template-columns: 1fr; gap: 12px; }
+      .table-toolbar { flex-direction: column; align-items: stretch; }
+      .filter-select { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-bg"></div>
+
+<!-- ── TOPBAR ── -->
+<nav class="topbar">
+  <a class="topbar-brand" href="/">
+    <div class="topbar-brand-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4z"/><path d="M19 10a1 1 0 0 1 2 0 9 9 0 0 1-8 8.94V21h2a1 1 0 1 1 0 2H9a1 1 0 1 1 0-2h2v-2.06A9 9 0 0 1 3 10a1 1 0 0 1 2 0 7 7 0 0 0 14 0z"/></svg>
+    </div>
+    VoiceAI
+  </a>
+
+  <span class="topbar-badge" style="margin-left:8px">Admin</span>
+
+  <div class="topbar-sep"></div>
+
+  <div class="nav-links">
+    <a href="/" class="nav-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4z"/></svg>
+      Studio
+    </a>
+    <a href="/admin" class="nav-link active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+      Users
+    </a>
+  </div>
+
+  <div class="topbar-right" style="margin-left:8px">
+    <a href="/logout" class="topbar-logout">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign out
+    </a>
+  </div>
+</nav>
+
+<!-- PAGE -->
+<div class="admin-page">
+
+  <div class="page-title-row">
+    <div class="page-title-group">
+      <span class="page-eyebrow">Control Panel</span>
+      <h1 class="page-title serif">User Management</h1>
+    </div>
+    <button class="btn-ghost" onclick="loadAll()" style="display:flex;align-items:center;gap:6px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="14" height="14"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+      Refresh
+    </button>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card">
+      <div class="stat-card-icon">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      </div>
+      <div class="stat-label">Total Users</div>
+      <div class="stat-value" id="statUsers">—</div>
+      <div class="stat-sub">All registered accounts</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4z"/><path d="M19 10a1 1 0 0 1 2 0 9 9 0 0 1-8 8.94V21h2"/></svg>
+      </div>
+      <div class="stat-label">Transcripts</div>
+      <div class="stat-value" id="statTranscripts">—</div>
+      <div class="stat-sub">Total transcriptions saved</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon">
+        <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div class="stat-label">New Today</div>
+      <div class="stat-value" id="statToday">—</div>
+      <div class="stat-sub">Signups in last 24 h</div>
+    </div>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="table-toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
+      <input class="search-input" id="searchInput" type="text" placeholder="Search by name or email…" oninput="filterTable()"/>
+    </div>
+    <select class="filter-select" id="roleFilter" onchange="filterTable()">
+      <option value="">All roles</option>
+      <option value="user">User</option>
+      <option value="admin">Admin</option>
+    </select>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-card">
+    <div class="table-wrap">
+      <table id="userTable">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Role</th>
+            <th>Transcripts</th>
+            <th>Joined</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="userTableBody">
+          <tr><td colspan="5">
+            <div class="empty-state">
+              <div style="font-size:13px;color:var(--t4)">Loading…</div>
+            </div>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <span id="tableCount">—</span>
+      <span style="color:var(--t4)">VoiceAI Admin Panel</span>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <h3 class="modal-title serif">Delete user?</h3>
+    <p class="modal-body" id="deleteModalBody">This action is permanent and cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn-danger" id="confirmDeleteBtn">Delete permanently</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+  let allUsers = [];
+  let pendingDeleteId = null;
+
+  async function loadAll() {
+    await Promise.all([loadStats(), loadUsers()]);
+  }
+
+  async function loadStats() {
+    try {
+      const res  = await fetch('/api/admin/stats');
+      const data = await res.json();
+      animateCount('statUsers',       data.total_users);
+      animateCount('statTranscripts', data.total_transcripts);
+      animateCount('statToday',       data.new_today);
+    } catch(e) { console.error(e); }
+  }
+
+  function animateCount(id, target) {
+    const el = document.getElementById(id);
+    const start = 0;
+    const dur = 800;
+    const startTime = performance.now();
+    el.classList.add('counting');
+    function step(now) {
+      const prog = Math.min((now - startTime) / dur, 1);
+      const ease = 1 - Math.pow(1 - prog, 3);
+      el.textContent = Math.round(start + (target - start) * ease);
+      if (prog < 1) requestAnimationFrame(step);
+      else { el.textContent = target; el.classList.remove('counting'); }
+    }
+    requestAnimationFrame(step);
+  }
+
+  async function loadUsers() {
+    try {
+      const res  = await fetch('/api/admin/users');
+      allUsers   = await res.json();
+      renderTable(allUsers);
+    } catch(e) { console.error(e); }
+  }
+
+  function renderTable(users) {
+    const tbody = document.getElementById('userTableBody');
+    const count = document.getElementById('tableCount');
+
+    if (!users.length) {
+      tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">
+        <div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div class="empty-title">No users found</div>
+        <div class="empty-sub">Try adjusting your search or filter.</div>
+      </div></td></tr>`;
+      count.textContent = '0 users';
+      return;
+    }
+
+    count.textContent = users.length + ' user' + (users.length === 1 ? '' : 's');
+
+    tbody.innerHTML = users.map((u, i) => {
+      const initials = u.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+      const avatarClass = u.role === 'admin' ? 'avatar-gold' : 'avatar-blue';
+      const date = new Date(u.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+      const roleChip = u.role === 'admin'
+        ? '<span class="chip chip-admin"><span class="chip-dot"></span>Admin</span>'
+        : '<span class="chip chip-user"><span class="chip-dot"></span>User</span>';
+
+      return `<tr style="animation-delay:${i * 0.04}s">
+        <td>
+          <div class="user-cell">
+            <div class="avatar ${avatarClass}">${esc(initials)}</div>
+            <div>
+              <div class="user-name">${esc(u.name)}</div>
+              <div class="user-email">${esc(u.email)}</div>
+            </div>
+          </div>
+        </td>
+        <td>${roleChip}</td>
+        <td style="color:var(--t1);font-weight:700">${u.transcripts}</td>
+        <td>${date}</td>
+        <td>
+          ${u.role !== 'admin'
+            ? `<button class="del-btn" onclick="promptDelete(${u.id},'${esc(u.name)}')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="12" height="12"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                Delete
+              </button>`
+            : '<span style="color:var(--t4);font-size:12px">Protected</span>'}
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  function filterTable() {
+    const q    = document.getElementById('searchInput').value.toLowerCase();
+    const role = document.getElementById('roleFilter').value;
+    const filtered = allUsers.filter(u => {
+      const matchQ    = !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+      const matchRole = !role || u.role === role;
+      return matchQ && matchRole;
+    });
+    renderTable(filtered);
+  }
+
+  function promptDelete(id, name) {
+    pendingDeleteId = id;
+    document.getElementById('deleteModalBody').textContent =
+      `Delete "${name}"? All their transcripts will also be permanently removed.`;
+    document.getElementById('deleteModal').classList.add('open');
+    document.getElementById('confirmDeleteBtn').onclick = confirmDelete;
+  }
+
+  function closeModal() {
+    document.getElementById('deleteModal').classList.remove('open');
+    pendingDeleteId = null;
+  }
+
+  async function confirmDelete() {
+    if (!pendingDeleteId) return;
+    try {
+      const res  = await fetch('/api/admin/users/' + pendingDeleteId, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error, 'error'); return; }
+      showToast('User deleted successfully.', 'success');
+      closeModal();
+      await loadAll();
+    } catch(e) {
+      showToast('Network error.', 'error');
+    }
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function showToast(msg, type) {
+    const c = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = 'toast ' + type;
+    t.innerHTML = `<span class="toast-icon">${type==='success'?'✓':'✕'}</span>${msg}`;
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+
+  document.getElementById('deleteModal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal();
+  });
+
+  loadAll();
+</script>
+</body>
+</html>

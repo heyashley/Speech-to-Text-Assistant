@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>VoiceAI — Transcribe &amp; Translate</title>
+  <link rel="stylesheet" href="/static/base.css"/>
+  <style>
+    body {
+      background: var(--ink);
+      display: flex; flex-direction: column; min-height: 100vh;
+    }
+
+    /* ── PAGE BG EFFECTS ── */
+    .page-bg {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 70% 50% at 8% 0%,  rgba(20,184,166,0.09) 0%, transparent 55%),
+        radial-gradient(ellipse 55% 45% at 92% 5%, rgba(139,92,246,0.07) 0%, transparent 50%),
+        radial-gradient(ellipse 50% 40% at 50% 95%, rgba(249,115,22,0.04) 0%, transparent 55%);
+    }
+
+    /* ── HERO ── */
+    .hero {
+      text-align: center;
+      padding: 52px 20px 36px;
+      position: relative; z-index: 1;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: var(--teal-dim); border: 1px solid rgba(20,184,166,0.28);
+      border-radius: var(--r-full); padding: 5px 14px;
+      font-size: 11px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--teal);
+      margin-bottom: 20px;
+      animation: fadeUp .5s ease both;
+    }
+    .hero-badge-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--teal);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    .hero-title {
+      font-size: clamp(30px, 5vw, 52px);
+      color: var(--t1); line-height: 1.1; margin-bottom: 14px;
+      animation: fadeUp .5s .07s ease both;
+    }
+    .hero-title em { color: var(--teal); font-style: italic; }
+    .hero-sub {
+      font-size: 16px; color: var(--t3); max-width: 520px; margin: 0 auto;
+      animation: fadeUp .5s .14s ease both;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .app-wrap {
+      flex: 1; padding: 0 20px 64px;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 20px; position: relative; z-index: 1;
+    }
+    .app-card {
+      width: 100%; max-width: 940px;
+      background: var(--ink3);
+      border: 1px solid var(--line2);
+      border-radius: var(--r-2xl);
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+      animation: fadeUp .5s .2s ease both;
+      transition: border-color .3s;
+    }
+    .app-card:hover { border-color: rgba(20,184,166,0.18); }
+
+    /* ── INPUT SECTION ── */
+    .input-section {
+      display: grid; grid-template-columns: 1fr 1px 1fr;
+    }
+    .input-col {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 38px 34px; gap: 20px;
+    }
+    .col-sep { background: var(--line); }
+    .col-header {
+      width: 100%;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .col-header-icon {
+      width: 30px; height: 30px; border-radius: var(--r-sm);
+      background: var(--ink4); border: 1px solid var(--line2);
+      display: flex; align-items: center; justify-content: center;
+      transition: background .2s, border-color .2s;
+    }
+    .col-header-icon svg { width: 14px; height: 14px; fill: var(--t3); transition: fill .2s; }
+    .input-col:hover .col-header-icon { background: var(--teal-dim); border-color: rgba(20,184,166,0.3); }
+    .input-col:hover .col-header-icon svg { fill: var(--teal); }
+    .col-header-label {
+      font-size: 11px; font-weight: 700; letter-spacing: .9px;
+      text-transform: uppercase; color: var(--t3);
+    }
+
+    /* ── MIC BUTTON ── */
+    .mic-outer {
+      position: relative; width: 124px; height: 124px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .mic-ring {
+      position: absolute; inset: 0; border-radius: 50%;
+      border: 1px solid rgba(20,184,166,0.3);
+      opacity: 0; pointer-events: none;
+    }
+    .mic-ring.active-1 { animation: ripple 2s ease-out infinite; opacity: 1; }
+    .mic-ring.active-2 { animation: ripple 2s ease-out .65s infinite; opacity: 1; }
+
+    .mic-btn {
+      width: 90px; height: 90px; border-radius: 50%;
+      background: linear-gradient(145deg, var(--teal), #0d9488);
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s;
+      box-shadow: 0 0 0 12px var(--teal-glow), 0 8px 32px rgba(20,184,166,0.4);
+      position: relative; z-index: 1;
+      animation: float 5s ease-in-out infinite;
+    }
+    .mic-btn:hover  { transform: scale(1.08); box-shadow: 0 0 0 18px var(--teal-glow), 0 12px 40px rgba(20,184,166,0.5); animation-play-state: paused; }
+    .mic-btn:active { transform: scale(0.95); animation-play-state: paused; }
+    .mic-btn.recording {
+      background: linear-gradient(145deg, var(--red), #be123c);
+      box-shadow: 0 0 0 12px rgba(244,63,94,0.06), 0 8px 32px rgba(244,63,94,0.45);
+      animation: none;
+    }
+    .mic-btn.recording:hover { box-shadow: 0 0 0 18px rgba(244,63,94,0.08), 0 12px 40px rgba(244,63,94,0.55); }
+    .mic-btn svg { width: 32px; height: 32px; fill: #030f0e; }
+    .mic-btn .stop-sq {
+      width: 18px; height: 18px;
+      background: white; border-radius: 4px; display: none;
+    }
+    .mic-btn.recording svg { display: none; }
+    .mic-btn.recording .stop-sq { display: block; }
+
+    .mic-label {
+      font-size: 12px; font-weight: 600; letter-spacing: .6px;
+      text-transform: uppercase; color: var(--t4); transition: color .3s;
+    }
+    .mic-label.active { color: var(--red); }
+
+    /* ── WAVEFORM ── */
+    .waveform {
+      display: flex; align-items: center; gap: 3px;
+      height: 28px; opacity: 0; transition: opacity .35s;
+    }
+    .waveform.active { opacity: 1; }
+    .waveform span {
+      display: block; width: 3px; height: 4px;
+      border-radius: 2px; background: var(--red);
+    }
+    .waveform.active span { animation: waveAnim 1s ease-in-out infinite; }
+    .waveform span:nth-child(1){animation-delay:.00s}
+    .waveform span:nth-child(2){animation-delay:.10s}
+    .waveform span:nth-child(3){animation-delay:.20s}
+    .waveform span:nth-child(4){animation-delay:.30s}
+    .waveform span:nth-child(5){animation-delay:.20s}
+    .waveform span:nth-child(6){animation-delay:.10s}
+    .waveform span:nth-child(7){animation-delay:.00s}
+    @keyframes waveAnim { 0%,100%{height:4px} 50%{height:22px} }
+
+    /* ── UPLOAD ── */
+    .upload-zone {
+      width: 100%;
+      border: 1.5px dashed var(--line2);
+      border-radius: var(--r-lg); padding: 28px 20px;
+      text-align: center; cursor: pointer; position: relative;
+      transition: background .25s, border-color .25s, transform .2s;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      background: rgba(20,184,166,0.04);
+      border-color: var(--teal); transform: scale(1.01);
+    }
+    .upload-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0;
+      cursor: pointer; width: 100%; height: 100%;
+    }
+    .upload-zone-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      background: var(--teal-dim); border: 1px solid rgba(20,184,166,0.2);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px;
+      transition: transform .2s;
+    }
+    .upload-zone:hover .upload-zone-icon { transform: translateY(-3px); }
+    .upload-zone-icon svg { width: 18px; height: 18px; fill: none; stroke: var(--teal); stroke-width: 2; }
+    .upload-zone p { font-size: 14px; color: var(--t2); font-weight: 500; margin-bottom: 4px; }
+    .upload-zone span { font-size: 12px; color: var(--t4); }
+
+    /* ── STATS BAR ── */
+    .stats-bar {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      border-top: 1px solid var(--line);
+    }
+    .stat-item {
+      padding: 18px 24px;
+      border-right: 1px solid var(--line);
+      transition: background .2s;
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-item:hover { background: rgba(255,255,255,0.015); }
+    .stat-label { font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--t4); margin-bottom: 4px; }
+    .stat-val   { font-size: 22px; font-weight: 700; color: var(--t1); font-variant-numeric: tabular-nums; transition: color .3s; }
+    .stat-val.updated { color: var(--teal); }
+
+    /* ── SECTIONS ── */
+    .section-sep { height: 1px; background: var(--line); }
+
+    .transcript-section { padding: 26px 30px; }
+    .section-hdr {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+    }
+    .section-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .section-title {
+      font-size: 11px; font-weight: 700; letter-spacing: .9px;
+      text-transform: uppercase; color: var(--t3);
+    }
+    .transcript-text {
+      font-size: 15px; line-height: 1.85;
+      color: var(--t3); word-break: break-word;
+      min-height: 80px; transition: color .3s;
+    }
+    .transcript-text.filled { color: var(--t1); animation: fadeIn .4s ease; }
+
+    /* ── ANALYSIS GRID ── */
+    .analysis-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      border-top: 1px solid var(--line);
+    }
+    .analysis-cell {
+      padding: 22px 28px;
+      border-right: 1px solid var(--line);
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .analysis-cell:last-child { border-right: none; }
+
+    /* ── CHIP ANIMATED ── */
+    .chip { transition: all .4s cubic-bezier(.22,1,.36,1); }
+
+    /* ── TRANSLATION ── */
+    .translation-section {
+      border-top: 1px solid var(--line);
+      padding: 26px 30px;
+      display: flex; flex-direction: column; gap: 18px;
+    }
+    .translation-controls {
+      display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap;
+    }
+    .lang-wrap { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 130px; }
+    .lang-label { font-size: 10px; font-weight: 700; letter-spacing: .9px; text-transform: uppercase; color: var(--t4); }
+    .lang-select {
+      background: var(--ink4); border: 1px solid var(--line2);
+      border-radius: var(--r-md); color: var(--t1);
+      font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 500;
+      padding: 10px 34px 10px 14px; cursor: pointer; outline: none;
+      appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(238,242,247,0.25)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center;
+      transition: border-color .2s, background .2s;
+      width: 100%;
+    }
+    .lang-select:focus { border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-dim); outline: none; }
+    .lang-select option { background: #111624; }
+
+    .swap-btn {
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      background: var(--ink4); border: 1px solid var(--line2);
+      color: var(--t3); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .35s cubic-bezier(.22,1,.36,1);
+    }
+    .swap-btn svg { width: 15px; height: 15px; }
+    .swap-btn:hover { background: var(--teal-dim); border-color: rgba(20,184,166,0.4); color: var(--teal); transform: rotate(180deg); }
+
+    .translate-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 22px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--teal), #0d9488);
+      border: none; border-radius: var(--r-md);
+      color: #030f0e; font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer; white-space: nowrap;
+      transition: opacity .2s, transform .15s, box-shadow .2s;
+      box-shadow: 0 4px 18px rgba(20,184,166,0.3);
+      position: relative; overflow: hidden;
+    }
+    .translate-btn::after {
+      content: '';
+      position: absolute; top: 0; left: -100%; width: 60%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+      transform: skewX(-20deg); transition: left .5s ease;
+    }
+    .translate-btn:hover::after { left: 160%; }
+    .translate-btn svg { width: 15px; height: 15px; }
+    .translate-btn:hover  { opacity: .9; box-shadow: 0 6px 26px rgba(20,184,166,0.42); }
+    .translate-btn:active { transform: scale(0.97); }
+    .translate-btn:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .translation-output {
+      background: rgba(20,184,166,0.04);
+      border: 1px solid rgba(20,184,166,0.15);
+      border-radius: var(--r-lg); padding: 20px;
+      display: flex; flex-direction: column; gap: 10px;
+      transition: border-color .3s;
+    }
+    .translation-output.has-content { border-color: rgba(20,184,166,0.3); }
+    .translation-output-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .translation-badge {
+      font-size: 11px; font-weight: 700; letter-spacing: .7px;
+      text-transform: uppercase; color: var(--teal);
+      background: var(--teal-dim); border: 1px solid rgba(20,184,166,0.25);
+      border-radius: var(--r-full); padding: 3px 10px;
+    }
+    .copy-btn {
+      display: flex; align-items: center; gap: 5px;
+      background: transparent; border: 1px solid var(--line2);
+      border-radius: var(--r-sm); color: var(--t3);
+      font-size: 12px; font-weight: 500;
+      padding: 5px 10px; cursor: pointer; transition: all .2s;
+    }
+    .copy-btn:hover { background: var(--ink3); color: var(--t1); }
+    .copy-btn.copied { color: var(--green); border-color: rgba(34,197,94,.3); background: var(--green-dim); }
+    .translated-text {
+      font-size: 15px; line-height: 1.85; color: var(--t3);
+      word-break: break-word; min-height: 56px; transition: color .3s;
+    }
+    .translated-text.filled { color: var(--t1); animation: fadeIn .4s ease; }
+    .translation-meta { font-size: 12px; color: var(--t4); }
+
+    .btn-spinner {
+      width: 13px; height: 13px;
+      border: 2px solid rgba(3,15,14,0.3); border-top-color: #030f0e;
+      border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 720px) {
+      .input-section   { grid-template-columns: 1fr; }
+      .col-sep         { display: none; }
+      .input-col:first-child { border-bottom: 1px solid var(--line); }
+      .analysis-grid { grid-template-columns: 1fr; }
+      .analysis-cell { border-right: none; border-bottom: 1px solid var(--line); }
+      .analysis-cell:last-child { border-bottom: none; }
+      .translation-controls { flex-direction: column; align-items: stretch; }
+      .swap-btn { align-self: center; }
+      .translate-btn { width: 100%; justify-content: center; }
+    }
+    @media (max-width: 480px) {
+      .stats-bar { grid-template-columns: 1fr 1fr; }
+      .stat-item:last-child { grid-column: 1/-1; border-right: none; border-top: 1px solid var(--line); }
+      .hero { padding: 36px 16px 24px; }
+      .app-wrap { padding: 0 12px 48px; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-bg"></div>
+
+<!-- ── TOPBAR ── -->
+<nav class="topbar">
+  <a class="topbar-brand" href="/">
+    <div class="topbar-brand-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4z"/><path d="M19 10a1 1 0 0 1 2 0 9 9 0 0 1-8 8.94V21h2a1 1 0 1 1 0 2H9a1 1 0 1 1 0-2h2v-2.06A9 9 0 0 1 3 10a1 1 0 0 1 2 0 7 7 0 0 0 14 0z"/></svg>
+    </div>
+    VoiceAI
+  </a>
+
+  <div class="nav-links" style="margin-left:12px">
+    <a href="/" class="nav-link active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4z"/><path d="M19 10a1 1 0 0 1 2 0 9 9 0 0 1-8 8.94V21h2v-2.06"/></svg>
+      Studio
+    </a>
+  </div>
+
+  <div class="topbar-sep"></div>
+
+  <div class="topbar-right">
+    <div class="topbar-user">
+      <div class="topbar-avatar" id="topbarAvatar"></div>
+      <span style="display:none" id="topbarName">{{ user_name }}</span>
+    </div>
+    <a href="/logout" class="topbar-logout">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign out
+    </a>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<div class="hero">
+  <div class="hero-badge"><span class="hero-badge-dot"></span>AI-Powered</div>
+  <h1 class="hero-title serif">Transcribe, Analyze,<br><em>Translate.</em></h1>
+  <p class="hero-sub">Record your voice or upload audio — get instant transcription, sentiment analysis, and multi-language translation.</p>
+</div>
+
+<!-- ── APP ── -->
+<div class="app-wrap">
+<div class="app-card">
+
+  <!-- INPUT ROW -->
+  <div class="input-section">
+    <!-- MIC -->
+    <div class="input-col">
+      <div class="col-header">
+        <div class="col-header-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4z"/><path d="M19 10a1 1 0 0 1 2 0 9 9 0 0 1-8 8.94V21h2a1 1 0 1 1 0 2H9a1 1 0 1 1 0-2h2v-2.06A9 9 0 0 1 3 10a1 1 0 0 1 2 0 7 7 0 0 0 14 0z"/></svg>
+        </div>
+        <span class="col-header-label">Microphone</span>
+      </div>
+      <div class="mic-outer">
+        <div class="mic-ring" id="micRing1"></div>
+        <div class="mic-ring" id="micRing2"></div>
+        <button class="mic-btn" id="micBtn" onclick="toggleMic()" aria-label="Toggle recording">
+          <svg viewBox="0 0 24 24"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4z"/><path d="M19 10a1 1 0 0 1 2 0 9 9 0 0 1-8 8.94V21h2a1 1 0 1 1 0 2H9a1 1 0 1 1 0-2h2v-2.06A9 9 0 0 1 3 10a1 1 0 0 1 2 0 7 7 0 0 0 14 0z"/></svg>
+          <span class="stop-sq"></span>
+        </button>
+      </div>
+      <div class="waveform" id="waveform">
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span>
+      </div>
+      <span class="mic-label" id="micLabel">Click to record</span>
+    </div>
+
+    <div class="col-sep"></div>
+
+    <!-- UPLOAD -->
+    <div class="input-col">
+      <div class="col-header">
+        <div class="col-header-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <span class="col-header-label">Upload Audio</span>
+      </div>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="audioFile" accept="audio/*" onchange="uploadAudio()" aria-label="Upload audio"/>
+        <div class="upload-zone-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <p id="uploadText">Drop file or click to browse</p>
+        <span>MP3 · WAV · M4A · OGG · FLAC</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-label">Words</div>
+      <div class="stat-val" id="statWords">—</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Characters</div>
+      <div class="stat-val" id="statChars">—</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Est. Duration</div>
+      <div class="stat-val" id="statDur">—</div>
+    </div>
+  </div>
+
+  <div class="section-sep"></div>
+
+  <!-- TRANSCRIPT -->
+  <div class="transcript-section">
+    <div class="section-hdr">
+      <span class="section-dot" style="background:var(--teal)"></span>
+      <span class="section-title">Transcript</span>
+    </div>
+    <div class="transcript-text" id="result" aria-live="polite">
+      Your transcript will appear here after recording or uploading audio…
+    </div>
+  </div>
+
+  <!-- ANALYSIS -->
+  <div class="analysis-grid">
+    <div class="analysis-cell">
+      <div class="section-hdr" style="margin-bottom:0">
+        <span class="section-dot" style="background:var(--violet)"></span>
+        <span class="section-title">Sentiment</span>
+      </div>
+      <span class="chip chip-neutral" id="sentimentChip"><span class="chip-dot"></span>Awaiting transcript</span>
+      <div style="font-size:12px;color:var(--t4)" id="sentimentMeta"></div>
+    </div>
+    <div class="analysis-cell">
+      <div class="section-hdr" style="margin-bottom:0">
+        <span class="section-dot" style="background:var(--coral)"></span>
+        <span class="section-title">Tone</span>
+      </div>
+      <span class="chip chip-neutral" id="toneChip"><span class="chip-dot"></span>Awaiting transcript</span>
+      <div style="font-size:12px;color:var(--t4)" id="toneMeta"></div>
+    </div>
+  </div>
+
+  <!-- TRANSLATION -->
+  <div class="translation-section">
+    <div class="section-hdr">
+      <span class="section-dot" style="background:var(--green)"></span>
+      <span class="section-title">Translation</span>
+    </div>
+
+    <div class="translation-controls">
+      <div class="lang-wrap">
+        <span class="lang-label">From</span>
+        <select class="lang-select" id="sourceLang">
+          <option value="en">English</option><option value="hi">Hindi</option>
+          <option value="fr">French</option><option value="es">Spanish</option>
+          <option value="de">German</option><option value="zh">Chinese</option>
+          <option value="ar">Arabic</option><option value="pt">Portuguese</option>
+          <option value="ru">Russian</option><option value="ja">Japanese</option>
+          <option value="ko">Korean</option><option value="it">Italian</option>
+          <option value="tr">Turkish</option><option value="nl">Dutch</option>
+          <option value="pl">Polish</option><option value="sv">Swedish</option>
+          <option value="bn">Bengali</option><option value="ur">Urdu</option>
+          <option value="ta">Tamil</option><option value="te">Telugu</option>
+        </select>
+      </div>
+      <button class="swap-btn" onclick="swapLangs()" title="Swap languages" aria-label="Swap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M7 16V4m0 0L3 8m4-4l4 4"/><path d="M17 8v12m0 0l4-4m-4 4l-4-4"/>
+        </svg>
+      </button>
+      <div class="lang-wrap">
+        <span class="lang-label">To</span>
+        <select class="lang-select" id="targetLang">
+          <option value="hi">Hindi</option><option value="fr">French</option>
+          <option value="es">Spanish</option><option value="de">German</option>
+          <option value="zh">Chinese</option><option value="ar">Arabic</option>
+          <option value="pt">Portuguese</option><option value="ru">Russian</option>
+          <option value="ja">Japanese</option><option value="ko">Korean</option>
+          <option value="it">Italian</option><option value="tr">Turkish</option>
+          <option value="nl">Dutch</option><option value="pl">Polish</option>
+          <option value="sv">Swedish</option><option value="bn">Bengali</option>
+          <option value="ur">Urdu</option><option value="ta">Tamil</option>
+          <option value="te">Telugu</option><option value="en">English</option>
+        </select>
+      </div>
+      <button class="translate-btn" id="translateBtn" onclick="doTranslate()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+        Translate
+      </button>
+    </div>
+
+    <div class="translation-output" id="translationOutput">
+      <div class="translation-output-hdr">
+        <span class="translation-badge" id="translationBadge">—</span>
+        <button class="copy-btn" id="copyBtn" onclick="copyTranslation()" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+            <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          Copy
+        </button>
+      </div>
+      <div class="translated-text" id="translatedText" aria-live="polite">Translated text will appear here…</div>
+      <div class="translation-meta" id="translateMeta"></div>
+    </div>
+  </div>
+
+</div><!-- /app-card -->
+</div><!-- /app-wrap -->
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+/* ── Avatar ── */
+(function(){
+  const name = document.getElementById('topbarName').textContent.trim();
+  const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) || '?';
+  document.getElementById('topbarAvatar').textContent = initials;
+})();
+
+/* ── State ── */
+let isRecording = false, recognition = null, finalTranscript = '';
+
+const LANG = {en:'English',hi:'Hindi',fr:'French',es:'Spanish',de:'German',
+  zh:'Chinese',ar:'Arabic',pt:'Portuguese',ru:'Russian',ja:'Japanese',
+  ko:'Korean',it:'Italian',tr:'Turkish',nl:'Dutch',pl:'Polish',sv:'Swedish',
+  bn:'Bengali',ur:'Urdu',ta:'Tamil',te:'Telugu'};
+
+/* ── Speech Recognition ── */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SR) {
+  recognition = new SR();
+  recognition.continuous = true; recognition.interimResults = true; recognition.lang = 'en-US';
+  recognition.onstart  = () => setRecUI(true);
+  recognition.onend    = () => { if(isRecording){recognition.start();return;} setRecUI(false); if(finalTranscript.trim()) fetchSentiment(finalTranscript.trim()); };
+  recognition.onresult = (e) => {
+    let interim=''; finalTranscript='';
+    for(let i=0;i<e.results.length;i++){
+      const t=e.results[i][0].transcript;
+      if(e.results[i].isFinal) finalTranscript+=t+' '; else interim+=t;
+    }
+    const full=(finalTranscript+interim).trim();
+    setTranscript(full); updateStats(full);
+  };
+  recognition.onerror = (e) => { isRecording=false; setRecUI(false); setTranscript(''); showToast('Mic error: '+e.error,'error'); };
+}
+
+function toggleMic(){
+  if(!SR){ showToast('Speech recognition not supported. Use Chrome or Edge.','error'); return; }
+  isRecording=!isRecording;
+  if(isRecording){ finalTranscript=''; clearAll(); recognition.start(); }
+  else { recognition.stop(); }
+}
+
+async function fetchSentiment(text){
+  try{
+    const r=await fetch('/sentiment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+    const d=await r.json();
+    if(d.sentiment){ setSentiment(d.sentiment.label,d.sentiment.meta||''); setTone(d.sentiment.label); }
+  }catch(e){ console.error(e); }
+}
+
+/* ── Upload ── */
+function uploadAudio(){ const f=document.getElementById('audioFile').files[0]; if(f) sendFile(f); }
+function sendFile(file){
+  if(!file.type.startsWith('audio/')){ showToast('Please upload a valid audio file.','error'); return; }
+  document.getElementById('uploadText').textContent='Uploading '+file.name+'…';
+  document.getElementById('uploadZone').style.borderColor='var(--teal)';
+  clearAll();
+  const fd=new FormData(); fd.append('audio',file);
+  fetch('/upload',{method:'POST',body:fd})
+    .then(r=>{if(!r.ok) throw new Error('Server error '+r.status); return r.json();})
+    .then(d=>{
+      document.getElementById('uploadZone').style.borderColor='';
+      if(d.error){ showToast(d.error,'error'); document.getElementById('uploadText').textContent='Drop file or click to browse'; return; }
+      document.getElementById('uploadText').textContent='✓ Done: '+file.name;
+      if(d.transcript){ setTranscript(d.transcript); updateStats(d.transcript); }
+      if(d.sentiment){ setSentiment(d.sentiment.label,d.sentiment.meta||''); setTone(d.sentiment.label); }
+    })
+    .catch(e=>{ document.getElementById('uploadZone').style.borderColor=''; document.getElementById('uploadText').textContent='Drop file or click to browse'; showToast('Upload failed: '+e.message,'error'); });
+}
+const uz=document.getElementById('uploadZone');
+uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('drag-over');});
+uz.addEventListener('dragleave',()=>uz.classList.remove('drag-over'));
+uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)sendFile(f);});
+
+/* ── Translation ── */
+async function doTranslate(){
+  const text=document.getElementById('result').textContent.trim();
+  if(!text||text.startsWith('Your transcript')){ showToast('Record or upload audio first.','error'); return; }
+  const src=document.getElementById('sourceLang').value;
+  const tgt=document.getElementById('targetLang').value;
+  if(src===tgt){ showToast('Source and target languages must differ.','error'); return; }
+  setTranslateLoading(true);
+  try{
+    const r=await fetch('/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,source_lang:src,target_lang:tgt})});
+    const d=await r.json();
+    setTranslateLoading(false);
+    if(d.error){ showToast('Translation error: '+d.error,'error'); return; }
+    setTranslatedResult(d.translated_text,src,tgt);
+  }catch(e){ setTranslateLoading(false); showToast('Network error.','error'); }
+}
+
+function swapLangs(){
+  const s=document.getElementById('sourceLang'),t=document.getElementById('targetLang');
+  const tmp=s.value; s.value=t.value; t.value=tmp;
+}
+
+function setTranslateLoading(v){
+  const btn=document.getElementById('translateBtn');
+  if(v){ btn.disabled=true; btn.innerHTML='<span class="btn-spinner"></span> Translating…'; }
+  else { btn.disabled=false; btn.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="15" height="15"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Translate`; }
+}
+
+function setTranslatedResult(text,src,tgt){
+  document.getElementById('translatedText').textContent=text;
+  document.getElementById('translatedText').classList.add('filled');
+  document.getElementById('translationBadge').textContent=(LANG[src]||src)+' → '+(LANG[tgt]||tgt);
+  document.getElementById('translateMeta').textContent='Translated via MyMemory';
+  document.getElementById('translationOutput').classList.add('has-content');
+  const cb=document.getElementById('copyBtn'); cb.style.display='flex'; cb.classList.remove('copied');
+}
+
+function copyTranslation(){
+  const text=document.getElementById('translatedText').textContent;
+  if(!text) return;
+  navigator.clipboard.writeText(text).then(()=>{
+    const cb=document.getElementById('copyBtn');
+    cb.classList.add('copied'); cb.textContent='✓ Copied!';
+    setTimeout(()=>{ cb.classList.remove('copied'); cb.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy`; }, 2000);
+  });
+}
+
+/* ── UI Helpers ── */
+function setRecUI(active){
+  document.getElementById('micBtn').classList.toggle('recording',active);
+  document.getElementById('micRing1').className='mic-ring'+(active?' active-1':'');
+  document.getElementById('micRing2').className='mic-ring'+(active?' active-2':'');
+  document.getElementById('waveform').classList.toggle('active',active);
+  document.getElementById('micLabel').classList.toggle('active',active);
+  document.getElementById('micLabel').textContent=active?'Recording… click to stop':'Click to record';
+}
+
+function setTranscript(text){
+  const el=document.getElementById('result');
+  el.textContent=text||'Your transcript will appear here after recording or uploading audio…';
+  el.classList.toggle('filled',!!text);
+}
+
+function setSentiment(label,meta){
+  const map={positive:'Positive',negative:'Negative',neutral:'Neutral'};
+  const chip=document.getElementById('sentimentChip');
+  chip.className='chip chip-'+label;
+  chip.innerHTML='<span class="chip-dot"></span>'+(map[label]||label);
+  document.getElementById('sentimentMeta').textContent=meta||'';
+}
+
+function setTone(label){
+  const tones={positive:{l:'Enthusiastic',c:'positive'},negative:{l:'Critical',c:'negative'},neutral:{l:'Informative',c:'neutral'}};
+  const t=tones[label]||tones.neutral;
+  const chip=document.getElementById('toneChip');
+  chip.className='chip chip-'+t.c;
+  chip.innerHTML='<span class="chip-dot"></span>'+t.l;
+  document.getElementById('toneMeta').textContent='Detected from transcript';
+}
+
+function updateStats(text){
+  const words=text.trim()?text.trim().split(/\s+/).length:0;
+  const chars=text.length;
+  const secs=Math.round((words/150)*60);
+  const mins=Math.floor(secs/60), rem=secs%60;
+  const wEl=document.getElementById('statWords');
+  const cEl=document.getElementById('statChars');
+  const dEl=document.getElementById('statDur');
+  wEl.textContent=words||'—';
+  cEl.textContent=chars||'—';
+  dEl.textContent=words?(mins>0?mins+'m '+rem+'s':rem+'s'):'—';
+  if(words){ [wEl,cEl,dEl].forEach(el=>{ el.classList.add('updated'); setTimeout(()=>el.classList.remove('updated'),600); }); }
+}
+
+function clearAll(){
+  setTranscript(''); updateStats('');
+  ['sentimentChip','toneChip'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.className='chip chip-neutral';
+    el.innerHTML='<span class="chip-dot"></span>Awaiting transcript';
+  });
+  document.getElementById('sentimentMeta').textContent='';
+  document.getElementById('toneMeta').textContent='';
+  document.getElementById('translatedText').textContent='Translated text will appear here…';
+  document.getElementById('translatedText').classList.remove('filled');
+  document.getElementById('translationBadge').textContent='—';
+  document.getElementById('translateMeta').textContent='';
+  document.getElementById('translationOutput').classList.remove('has-content');
+  document.getElementById('copyBtn').style.display='none';
+}
+
+function showToast(msg,type){
+  const c=document.getElementById('toastContainer');
+  const t=document.createElement('div');
+  t.className='toast '+(type||'');
+  t.innerHTML=`<span class="toast-icon">${type==='success'?'✓':'✕'}</span>${msg}`;
+  c.appendChild(t);
+  setTimeout(()=>t.remove(),3500);
+}
+</script>
+</body>
+</html>

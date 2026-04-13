@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Sign In — VoiceAI</title>
+  <link rel="stylesheet" href="/static/base.css"/>
+  <style>
+    body {
+      background: var(--ink);
+      display: flex; min-height: 100vh;
+    }
+
+    /* ── SPLIT LAYOUT ── */
+    .auth-wrap {
+      display: grid;
+      grid-template-columns: 1fr 440px;
+      min-height: 100vh;
+      width: 100%;
+      position: relative; z-index: 1;
+    }
+
+    /* ── LEFT VISUAL ── */
+    .auth-left {
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+      justify-content: flex-end;
+      padding: 64px;
+      background: var(--ink2);
+      border-right: 1px solid var(--line);
+    }
+    .auth-left-bg {
+      position: absolute; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 15%, rgba(20,184,166,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, rgba(139,92,246,0.10) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 55% 50%, rgba(249,115,22,0.05) 0%, transparent 50%);
+    }
+    .auth-left-grid {
+      position: absolute; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 52px 52px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 20%, transparent 100%);
+    }
+
+    /* Floating orbs */
+    .orb {
+      position: absolute; border-radius: 50%;
+      filter: blur(60px); pointer-events: none;
+      animation: float 8s ease-in-out infinite;
+    }
+    .orb-1 {
+      width: 280px; height: 280px;
+      background: rgba(20,184,166,0.12);
+      top: 10%; left: 10%;
+      animation-delay: 0s;
+    }
+    .orb-2 {
+      width: 200px; height: 200px;
+      background: rgba(139,92,246,0.10);
+      bottom: 20%; right: 15%;
+      animation-delay: -3s;
+    }
+    .orb-3 {
+      width: 150px; height: 150px;
+      background: rgba(249,115,22,0.08);
+      top: 50%; left: 40%;
+      animation-delay: -5s;
+    }
+
+    .auth-left-content { position: relative; z-index: 1; }
+    .brand-mark {
+      position: absolute; top: 64px; left: 64px;
+      display: inline-flex; align-items: center; gap: 12px;
+      animation: fadeUp .6s ease both;
+    }
+    .brand-icon {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--teal), #0d9488);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 20px rgba(20,184,166,0.35);
+    }
+    .brand-icon svg { width: 20px; height: 20px; fill: #030f0e; }
+    .brand-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px; color: var(--t1);
+    }
+
+    .left-headline {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(34px, 3.5vw, 54px);
+      line-height: 1.13; color: var(--t1);
+      margin-bottom: 20px;
+      animation: fadeUp .6s .1s ease both;
+    }
+    .left-headline em { color: var(--teal); font-style: italic; }
+    .left-sub {
+      font-size: 15px; color: var(--t2); line-height: 1.7;
+      max-width: 380px;
+      animation: fadeUp .6s .2s ease both;
+    }
+    .feature-list {
+      margin-top: 36px; display: flex; flex-direction: column; gap: 14px;
+      animation: fadeUp .6s .3s ease both;
+    }
+    .feature-item {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 13px; color: var(--t2);
+    }
+    .feature-dot {
+      width: 20px; height: 20px; border-radius: 6px; flex-shrink: 0;
+      background: var(--teal-dim); border: 1px solid rgba(20,184,166,0.3);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .feature-dot svg { width: 10px; height: 10px; stroke: var(--teal); }
+
+    /* ── RIGHT FORM ── */
+    .auth-right {
+      display: flex; align-items: center; justify-content: center;
+      padding: 48px 44px;
+      position: relative;
+    }
+    .auth-form-wrap {
+      width: 100%; max-width: 348px;
+      animation: fadeUp .5s .05s ease both;
+    }
+    .auth-eyebrow {
+      font-size: 11px; font-weight: 700; letter-spacing: 1.8px;
+      text-transform: uppercase; color: var(--teal);
+      margin-bottom: 8px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .auth-eyebrow::before {
+      content: '';
+      display: block; width: 20px; height: 1.5px;
+      background: var(--teal); border-radius: 2px;
+    }
+    .auth-title {
+      font-size: 32px; color: var(--t1); margin-bottom: 6px; line-height: 1.2;
+    }
+    .auth-sub { font-size: 14px; color: var(--t3); margin-bottom: 36px; }
+    .auth-sub a { color: var(--teal); text-decoration: none; font-weight: 500; }
+    .auth-sub a:hover { text-decoration: underline; }
+
+    .form-fields { display: flex; flex-direction: column; gap: 18px; margin-bottom: 24px; }
+
+    /* Animated field focus ring */
+    .field-input {
+      transition: border-color .25s, box-shadow .25s, background .25s, transform .15s;
+    }
+    .field-input:focus { transform: translateY(-1px); }
+
+    .forgot-link {
+      text-align: right; margin-top: -10px;
+      font-size: 12px; color: var(--t3);
+      text-decoration: none; display: block;
+      transition: color .2s;
+    }
+    .forgot-link:hover { color: var(--teal); }
+
+    .error-msg {
+      background: var(--red-dim); border: 1px solid rgba(244,63,94,0.25);
+      border-radius: var(--r-md); padding: 11px 14px;
+      font-size: 13px; color: #fb7185;
+      display: none;
+      animation: scaleIn .25s ease both;
+    }
+
+    /* Login btn shimmer effect */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--teal), #0d9488);
+      position: relative; overflow: hidden;
+    }
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%; width: 60%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+      transform: skewX(-20deg);
+      transition: left .6s ease;
+    }
+    .btn-primary:hover::after { left: 160%; }
+
+    .admin-hint {
+      margin-top: 24px;
+      background: rgba(20,184,166,0.05);
+      border: 1px solid rgba(20,184,166,0.15);
+      border-radius: var(--r-md);
+      padding: 12px 16px;
+      font-size: 12px; color: var(--t3); line-height: 1.6;
+    }
+    .admin-hint strong { color: var(--teal); font-weight: 600; }
+
+    /* ── DECORATIVE CORNER LINES ── */
+    .corner-accent {
+      position: absolute;
+      width: 60px; height: 60px;
+      pointer-events: none;
+    }
+    .corner-accent.tl { top: 20px; left: 20px; border-top: 1px solid rgba(20,184,166,0.25); border-left: 1px solid rgba(20,184,166,0.25); border-radius: 4px 0 0 0; }
+    .corner-accent.br { bottom: 20px; right: 20px; border-bottom: 1px solid rgba(139,92,246,0.25); border-right: 1px solid rgba(139,92,246,0.25); border-radius: 0 0 4px 0; }
+
+    @media (max-width: 860px) {
+      .auth-wrap { grid-template-columns: 1fr; }
+      .auth-left { display: none; }
+      .auth-right { padding: 60px 24px; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+<div class="auth-wrap">
+
+  <!-- LEFT -->
+  <div class="auth-left">
+    <div class="auth-left-bg"></div>
+    <div class="auth-left-grid"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <div class="brand-mark">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4z"/><path d="M19 10a1 1 0 0 1 2 0 9 9 0 0 1-8 8.94V21h2a1 1 0 1 1 0 2H9a1 1 0 1 1 0-2h2v-2.06A9 9 0 0 1 3 10a1 1 0 0 1 2 0 7 7 0 0 0 14 0z"/></svg>
+      </div>
+      <span class="brand-name">VoiceAI</span>
+    </div>
+
+    <div class="auth-left-content">
+      <h1 class="left-headline">
+        Your voice,<br><em>intelligently</em><br>understood.
+      </h1>
+      <p class="left-sub">
+        Transcribe speech in real-time, detect sentiment, and translate into 20+ languages — all powered by state-of-the-art AI.
+      </p>
+      <div class="feature-list">
+        <div class="feature-item">
+          <div class="feature-dot">
+            <svg viewBox="0 0 12 12" fill="none" stroke-width="2" stroke-linecap="round"><path d="M2 6l3 3 5-5"/></svg>
+          </div>
+          Real-time microphone transcription
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot">
+            <svg viewBox="0 0 12 12" fill="none" stroke-width="2" stroke-linecap="round"><path d="M2 6l3 3 5-5"/></svg>
+          </div>
+          AI sentiment & tone analysis
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot">
+            <svg viewBox="0 0 12 12" fill="none" stroke-width="2" stroke-linecap="round"><path d="M2 6l3 3 5-5"/></svg>
+          </div>
+          20+ language translation
+        </div>
+        <div class="feature-item">
+          <div class="feature-dot">
+            <svg viewBox="0 0 12 12" fill="none" stroke-width="2" stroke-linecap="round"><path d="M2 6l3 3 5-5"/></svg>
+          </div>
+          Audio file upload support
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="auth-right">
+    <div class="corner-accent tl"></div>
+    <div class="corner-accent br"></div>
+    <div class="auth-form-wrap">
+      <div class="auth-eyebrow">Welcome back</div>
+      <h2 class="auth-title serif">Sign in</h2>
+      <p class="auth-sub">No account? <a href="/register">Create one free →</a></p>
+
+      <div class="form-fields">
+        <div class="field-group">
+          <label class="field-label">Email address</label>
+          <input class="field-input" id="email" type="email" placeholder="you@example.com" autocomplete="email"/>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Password</label>
+          <input class="field-input" id="password" type="password" placeholder="••••••••" autocomplete="current-password"/>
+          <a href="#" class="forgot-link">Forgot password?</a>
+        </div>
+        <div class="error-msg" id="errorMsg"></div>
+      </div>
+
+      <button class="btn-primary" id="loginBtn" onclick="doLogin()">Sign in</button>
+
+      <div class="admin-hint">
+        <strong>Admin demo:</strong> admin@voiceai.com / admin123
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+  async function doLogin() {
+    const btn      = document.getElementById('loginBtn');
+    const errEl    = document.getElementById('errorMsg');
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value.trim();
+
+    errEl.style.display = 'none';
+    if (!email || !password) { showErr('Please fill in all fields.'); return; }
+
+    btn.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(3,15,14,0.3);border-top-color:#030f0e;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px"></span>Signing in…';
+    btn.disabled = true;
+
+    try {
+      const res  = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+
+      if (!res.ok) { showErr(data.error || 'Login failed.'); return; }
+
+      showToast('Welcome back! ✓', 'success');
+      setTimeout(() => {
+        window.location.href = data.role === 'admin' ? '/admin' : '/';
+      }, 700);
+    } catch(e) {
+      showErr('Network error. Please try again.');
+    } finally {
+      btn.innerHTML = 'Sign in';
+      btn.disabled  = false;
+    }
+  }
+
+  function showErr(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.style.display = 'block';
+    el.style.animation = 'none';
+    requestAnimationFrame(() => { el.style.animation = ''; });
+  }
+
+  function showToast(msg, type) {
+    const c = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = 'toast ' + type;
+    t.innerHTML = `<span class="toast-icon">${type==='success'?'✓':'✕'}</span>${msg}`;
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+  /* Subtle input label highlight on focus */
+  document.querySelectorAll('.field-input').forEach(inp => {
+    inp.addEventListener('focus', () => {
+      inp.closest('.field-group')?.querySelector('.field-label')?.style.setProperty('color', 'var(--teal)');
+    });
+    inp.addEventListener('blur', () => {
+      inp.closest('.field-group')?.querySelector('.field-label')?.style.setProperty('color', 'var(--t3)');
+    });
+  });
+</script>
+</body>
+</html>

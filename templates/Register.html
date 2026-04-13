@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Create Account — VoiceAI</title>
+  <link rel="stylesheet" href="/static/base.css"/>
+  <style>
+    body {
+      background: var(--ink);
+      display: flex; min-height: 100vh;
+    }
+    .auth-wrap {
+      display: grid;
+      grid-template-columns: 440px 1fr;
+      min-height: 100vh; width: 100%;
+      position: relative; z-index: 1;
+    }
+
+    /* ── FORM PANEL ── */
+    .auth-left {
+      display: flex; align-items: center; justify-content: center;
+      padding: 48px 44px;
+      border-right: 1px solid var(--line);
+      position: relative;
+    }
+    .corner-accent {
+      position: absolute; width: 60px; height: 60px; pointer-events: none;
+    }
+    .corner-accent.tl { top: 20px; left: 20px; border-top: 1px solid rgba(20,184,166,0.25); border-left: 1px solid rgba(20,184,166,0.25); border-radius: 4px 0 0 0; }
+    .corner-accent.br { bottom: 20px; right: 20px; border-bottom: 1px solid rgba(139,92,246,0.25); border-right: 1px solid rgba(139,92,246,0.25); border-radius: 0 0 4px 0; }
+
+    .auth-form-wrap { width: 100%; max-width: 348px; animation: fadeUp .5s ease both; }
+    .auth-eyebrow {
+      font-size: 11px; font-weight: 700; letter-spacing: 1.8px;
+      text-transform: uppercase; color: var(--violet);
+      margin-bottom: 8px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .auth-eyebrow::before {
+      content: '';
+      display: block; width: 20px; height: 1.5px;
+      background: var(--violet); border-radius: 2px;
+    }
+    .auth-title { font-size: 32px; color: var(--t1); margin-bottom: 6px; line-height: 1.2; }
+    .auth-sub { font-size: 14px; color: var(--t3); margin-bottom: 36px; }
+    .auth-sub a { color: var(--teal); text-decoration: none; font-weight: 500; }
+    .auth-sub a:hover { text-decoration: underline; }
+
+    .form-fields { display: flex; flex-direction: column; gap: 18px; margin-bottom: 24px; }
+
+    .field-input {
+      transition: border-color .25s, box-shadow .25s, background .25s, transform .15s;
+    }
+    .field-input:focus { transform: translateY(-1px); }
+
+    .password-strength {
+      height: 3px; border-radius: 2px;
+      background: var(--ink4); margin-top: 6px; overflow: hidden;
+    }
+    .strength-bar {
+      height: 100%; border-radius: 2px;
+      transition: width .4s cubic-bezier(.22,1,.36,1), background .4s;
+      width: 0%;
+    }
+    .strength-label { font-size: 11px; color: var(--t4); margin-top: 4px; }
+
+    .terms {
+      font-size: 12px; color: var(--t3); margin-top: 12px; line-height: 1.6;
+    }
+    .terms a { color: var(--violet-light); text-decoration: none; }
+    .terms a:hover { text-decoration: underline; }
+
+    .error-msg {
+      background: var(--red-dim); border: 1px solid rgba(244,63,94,0.25);
+      border-radius: var(--r-md); padding: 11px 14px;
+      font-size: 13px; color: #fb7185; display: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--violet), #6d28d9);
+      box-shadow: 0 4px 20px rgba(139,92,246,0.35);
+      position: relative; overflow: hidden;
+    }
+    .btn-primary:hover { box-shadow: 0 6px 30px rgba(139,92,246,0.45); }
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%; width: 60%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+      transform: skewX(-20deg);
+      transition: left .6s ease;
+    }
+    .btn-primary:hover::after { left: 160%; }
+
+    /* ── RIGHT VISUAL ── */
+    .auth-right {
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 64px;
+      background: var(--ink2);
+    }
+    .auth-right-bg {
+      position: absolute; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 70% 55% at 70% 20%, rgba(139,92,246,0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 50% at 20% 80%, rgba(20,184,166,0.08) 0%, transparent 55%);
+    }
+    .auth-right-grid {
+      position: absolute; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 52px 52px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 20%, transparent 100%);
+    }
+    .orb {
+      position: absolute; border-radius: 50%;
+      filter: blur(70px); pointer-events: none;
+      animation: float 8s ease-in-out infinite;
+    }
+    .orb-1 { width: 300px; height: 300px; background: rgba(139,92,246,0.10); top: 5%; right: 10%; animation-delay: 0s; }
+    .orb-2 { width: 200px; height: 200px; background: rgba(20,184,166,0.09); bottom: 15%; left: 20%; animation-delay: -4s; }
+
+    .right-content { position: relative; z-index: 1; }
+    .brand-mark {
+      display: inline-flex; align-items: center; gap: 12px; margin-bottom: 52px;
+      animation: fadeUp .6s ease both;
+    }
+    .brand-icon {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--violet), #6d28d9);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 20px rgba(139,92,246,0.35);
+    }
+    .brand-icon svg { width: 20px; height: 20px; fill: white; }
+    .brand-name { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--t1); }
+
+    .right-headline {
+      font-size: clamp(28px, 3vw, 48px);
+      color: var(--t1); margin-bottom: 20px; line-height: 1.2;
+      animation: fadeUp .6s .1s ease both;
+    }
+    .right-headline em { color: var(--violet-light); font-style: italic; }
+    .right-sub {
+      font-size: 15px; color: var(--t2); line-height: 1.7; max-width: 420px;
+      animation: fadeUp .6s .2s ease both;
+    }
+
+    .steps { margin-top: 44px; display: flex; flex-direction: column; gap: 22px; animation: fadeUp .6s .3s ease both; }
+    .step { display: flex; gap: 18px; align-items: flex-start; }
+    .step-num {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: var(--violet-dim); border: 1px solid rgba(139,92,246,0.3);
+      color: var(--violet-light); font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .step-title { font-size: 14px; font-weight: 600; color: var(--t1); margin-bottom: 2px; }
+    .step-desc { font-size: 13px; color: var(--t3); }
+
+    @media (max-width: 860px) {
+      .auth-wrap { grid-template-columns: 1fr; }
+      .auth-right { display: none; }
+      .auth-left { padding: 60px 24px; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+<div class="auth-wrap">
+
+  <!-- FORM -->
+  <div class="auth-left">
+    <div class="corner-accent tl"></div>
+    <div class="corner-accent br"></div>
+    <div class="auth-form-wrap">
+      <div class="auth-eyebrow">Get started</div>
+      <h2 class="auth-title serif">Create account</h2>
+      <p class="auth-sub">Already have one? <a href="/login">Sign in →</a></p>
+
+      <div class="form-fields">
+        <div class="field-group">
+          <label class="field-label">Full name</label>
+          <input class="field-input" id="name" type="text" placeholder="Jane Smith" autocomplete="name"/>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Email address</label>
+          <input class="field-input" id="email" type="email" placeholder="you@example.com" autocomplete="email"/>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Password</label>
+          <input class="field-input" id="password" type="password" placeholder="At least 6 characters" autocomplete="new-password" oninput="checkStrength(this.value)"/>
+          <div class="password-strength"><div class="strength-bar" id="strengthBar"></div></div>
+          <div class="strength-label" id="strengthLabel"></div>
+        </div>
+        <div class="error-msg" id="errorMsg"></div>
+      </div>
+
+      <button class="btn-primary" id="regBtn" onclick="doRegister()">Create account</button>
+      <p class="terms">By signing up you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</p>
+    </div>
+  </div>
+
+  <!-- VISUAL -->
+  <div class="auth-right">
+    <div class="auth-right-bg"></div>
+    <div class="auth-right-grid"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="right-content">
+      <div class="brand-mark">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4z"/><path d="M19 10a1 1 0 0 1 2 0 9 9 0 0 1-8 8.94V21h2a1 1 0 1 1 0 2H9a1 1 0 1 1 0-2h2v-2.06A9 9 0 0 1 3 10a1 1 0 0 1 2 0 7 7 0 0 0 14 0z"/></svg>
+        </div>
+        <span class="brand-name">VoiceAI</span>
+      </div>
+      <h1 class="right-headline serif">
+        Start speaking,<br><em>we'll handle</em><br>the rest.
+      </h1>
+      <p class="right-sub">
+        Join thousands of users who transcribe meetings, interviews, and ideas in seconds with AI-powered accuracy.
+      </p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div>
+            <div class="step-title">Create your account</div>
+            <div class="step-desc">Sign up free in under a minute.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div>
+            <div class="step-title">Record or upload audio</div>
+            <div class="step-desc">Use your mic or drop an audio file.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div>
+            <div class="step-title">Get instant insights</div>
+            <div class="step-desc">Transcription, sentiment, and translation.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+  function checkStrength(val) {
+    const bar   = document.getElementById('strengthBar');
+    const label = document.getElementById('strengthLabel');
+    const scores = [/[a-z]/, /[A-Z]/, /[0-9]/, /[^a-zA-Z0-9]/, /.{8,}/];
+    const score = scores.filter(r => r.test(val)).length;
+    const levels = [
+      { w: '0%',   c: '',                   l: '' },
+      { w: '20%',  c: '#f43f5e',            l: 'Very weak' },
+      { w: '40%',  c: '#f97316',            l: 'Weak' },
+      { w: '60%',  c: '#fbbf24',            l: 'Fair' },
+      { w: '80%',  c: '#a3e635',            l: 'Strong' },
+      { w: '100%', c: 'var(--teal)',         l: 'Very strong ✓' },
+    ];
+    const lv = levels[Math.min(score, 5)];
+    bar.style.width      = val.length ? lv.w : '0%';
+    bar.style.background = lv.c;
+    label.textContent    = val.length ? lv.l : '';
+    label.style.color    = lv.c;
+  }
+
+  async function doRegister() {
+    const btn  = document.getElementById('regBtn');
+    const errEl= document.getElementById('errorMsg');
+    const name = document.getElementById('name').value.trim();
+    const email= document.getElementById('email').value.trim();
+    const pass = document.getElementById('password').value.trim();
+
+    errEl.style.display = 'none';
+    if (!name || !email || !pass) { showErr('Please fill in all fields.'); return; }
+    if (pass.length < 6) { showErr('Password must be at least 6 characters.'); return; }
+
+    btn.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px"></span>Creating…';
+    btn.disabled = true;
+
+    try {
+      const res  = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password: pass })
+      });
+      const data = await res.json();
+
+      if (!res.ok) { showErr(data.error || 'Registration failed.'); return; }
+
+      showToast('Account created! Redirecting…', 'success');
+      setTimeout(() => window.location.href = '/login', 1200);
+    } catch(e) {
+      showErr('Network error. Please try again.');
+    } finally {
+      btn.innerHTML = 'Create account';
+      btn.disabled  = false;
+    }
+  }
+
+  function showErr(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg; el.style.display = 'block';
+  }
+  function showToast(msg, type) {
+    const c = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = 'toast ' + type;
+    t.innerHTML = `<span class="toast-icon">${type==='success'?'✓':'✕'}</span>${msg}`;
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') doRegister(); });
+
+  document.querySelectorAll('.field-input').forEach(inp => {
+    inp.addEventListener('focus', () => {
+      inp.closest('.field-group')?.querySelector('.field-label')?.style.setProperty('color', 'var(--violet-light)');
+    });
+    inp.addEventListener('blur', () => {
+      inp.closest('.field-group')?.querySelector('.field-label')?.style.setProperty('color', 'var(--t3)');
+    });
+  });
+</script>
+</body>
+</html>
