@@ -53,7 +53,7 @@ init_db()
 
 # ── load AI models ──────────────────────────────────────────────────────────
 print("Loading Whisper model…")
-whisper_model = whisper.load_model("tiny")
+whisper_model = whisper.load_model("base")
 print("Loading sentiment model…")
 sentiment_pipeline = pipeline("sentiment-analysis")
 print("All models loaded.")
