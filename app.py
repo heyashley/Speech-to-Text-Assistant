@@ -4,7 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash  # typ
 import whisper  # type: ignore
 from transformers import pipeline  # type: ignore
 import sqlite3, os, requests, functools, datetime # type: ignore
-
+import os 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "change-me-in-production-xyz987")
 CORS(app)
@@ -295,4 +295,4 @@ def translate():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 7860)))
